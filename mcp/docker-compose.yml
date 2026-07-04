@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+
+  # ARIMA model service
+  arima:
+    build:
+      context: ./models/arima    # build from this folder
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"              # host:container port mapping
+    environment:
+      - PORT=8001                # container reads this
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s              # check every 30 seconds
+      timeout: 10s               # fail if no response in 10s
+      retries: 3                 # retry 3 times before marking unhealthy
+
+  # Prophet model service
+  prophet:
+    build:
+      context: ./models/prophet
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Orchestrator — depends on both model services
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # In Docker, services talk via container name not localhost
+      # "arima" = the container named arima above
+      - ARIMA_URL=http://arima:8001/mcp/sse
+      - PROPHET_URL=http://prophet:8002/mcp/sse
+    depends_on:
+      arima:
+        condition: service_healthy   # wait for arima to pass healthcheck
+      prophet:
+        condition: service_healthy   # wait for prophet to pass healthcheck
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

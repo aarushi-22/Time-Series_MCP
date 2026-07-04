@@ -1,0 +1,6 @@
+fastmcp
+fastapi
+uvicorn
+statsmodels
+pydantic
+python-dotenv

@@ -1,0 +1,7 @@
+fastmcp
+fastapi
+uvicorn
+prophet
+pandas
+pydantic
+python-dotenv
